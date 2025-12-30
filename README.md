@@ -38,7 +38,7 @@ vecna-ai/
 
 ## 🚀 Live Demo
 
-👉 https://your-project-name.vercel.app  
+👉 https://ai-vecna-curse-check.netlify.app/
 
 ---
 
