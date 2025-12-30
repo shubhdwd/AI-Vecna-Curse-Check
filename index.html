@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Vecna Curse Experience</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* =====================================================
+   GLOBAL RESET
+===================================================== */
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:'Orbitron',sans-serif;
+  background:black;
+  color:white;
+  overflow:hidden;
+}
+
+:root{
+  --vh:1vh;
+}
+
+/* =====================================================
+   INTRO SCREEN
+===================================================== */
+#introScreen{
+  position:fixed;
+  inset:0;
+  background:black;
+  z-index:9999;
+}
+
+/* background intro video */
+#introVideo{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+/* TAP TO START */
+#startOverlay{
+  position:absolute;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  background:rgba(0,0,0,0.45);
+  transition: opacity 600ms ease;
+}
+
+/* fade-out helper for start overlay */
+#startOverlay.fade-out{
+  opacity:0;
+  pointer-events:none;
+}
+
+/* skip button should be transparent-style */
+#skipIntroBtn{
+  margin-top:14px;
+  padding:0.6rem 1rem;
+  background:transparent;
+  color:#ffb3b3;
+  border:1px dashed rgba(255,179,179,0.18);
+  border-radius:8px;
+  cursor:pointer;
+  font-family:'Orbitron',sans-serif;
+  font-weight:700;
+  text-transform:none;
+  box-shadow:none;
+  transition:transform .12s ease, opacity .12s;
+  opacity:0.95;
+}
+#skipIntroBtn:active{ transform:translateY(1px) }
+
+/* existing start button */
+#startSoundBtn{
+  padding:1rem 2.5rem;
+  font-size:1rem;
+  background:#8b0000;
+  color:white;
+  border:2px solid red;
+  border-radius:8px;
+  box-shadow:0 0 15px red;
+}
+
+/* NAME OVERLAY */
+/* we'll animate this overlay's opacity and provide a soft animated background */
+#nameOverlay{
+  position:absolute;
+  inset:0;
+  display:none; /* shown via JS */
+  justify-content:center;
+  align-items:center;
+  background:radial-gradient(circle at center,#120000,black);
+  backdrop-filter:blur(6px);
+  overflow:hidden;
+  opacity:0;
+  transition: opacity 600ms ease;
+}
+
+/* visible state triggers fade-in */
+#nameOverlay.visible{
+  opacity:1;
+}
+
+/* animated subtle background using pseudo element */
+#nameOverlay::before{
+  content: "";
+  position: absolute;
+  inset: -20%;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255,40,40,0.06), transparent 12%),
+    radial-gradient(circle at 80% 70%, rgba(0,200,255,0.04), transparent 14%),
+    linear-gradient(120deg, rgba(255,0,0,0.02), rgba(0,0,0,0.12));
+  filter: blur(24px) saturate(110%);
+  transform-origin: center;
+  animation: floatBG 10s linear infinite;
+  pointer-events: none;
+}
+
+/* gentle float animation */
+@keyframes floatBG{
+  0%{ transform: translateY(0) rotate(0deg) scale(1); }
+  50%{ transform: translateY(-18px) rotate(1.25deg) scale(1.02); }
+  100%{ transform: translateY(0) rotate(0deg) scale(1); }
+}
+
+#nameCard{
+  position:relative;
+  z-index:1; /* above animated background */
+  background:linear-gradient(145deg,#120000,#000);
+  padding:28px;
+  border-radius:18px;
+  border:2px solid #ff2b2b;
+  box-shadow:
+    0 0 30px rgba(255,43,43,.6),
+    inset 0 0 20px rgba(255,0,0,.3);
+  transform:perspective(900px) rotateX(8deg);
+  max-width:340px;
+  width:90%;
+  text-align:center;
+}
+
+#playerName{
+  width:100%;
+  padding:12px;
+  margin-top:12px;
+  background:black;
+  color:white;
+  border:2px solid darkred;
+  border-radius:10px;
+  font-family:'Orbitron',sans-serif;
+}
+
+#nameConfirmBtn{
+  margin-top:18px;
+  padding:1rem 2rem;
+  background:linear-gradient(135deg,#8b0000,#2b0033);
+  color:white;
+  border:2px solid red;
+  border-radius:10px;
+  box-shadow:0 0 15px red;
+}
+
+/* =====================================================
+   MAIN APP
+===================================================== */
+#mainApp{
+  display:none;
+}
+
+#bgVideo{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  z-index:-2;
+}
+
+/* DARK OVERLAY */
+.overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  z-index:-1;
+  pointer-events:none;
+}
+
+/* =====================================================
+   PAGE SYSTEM
+===================================================== */
+.page{
+  display:none;
+  height:calc(var(--vh) * 100);
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  text-align:center;
+  padding:20px;
+  position:relative;
+  z-index:5;
+}
+
+.page.active{
+  display:flex;
+}
+
+h1{
+  font-size:2.5rem;
+  color:#ff2b2b;
+  text-shadow:0 0 20px red;
+}
+
+h2{
+  font-size:1.7rem;
+}
+
+p{
+  margin-top:.7rem;
+  color:#ccc;
+}
+
+/* =====================================================
+   BUTTONS
+===================================================== */
+button{
+  margin-top:1.5rem;
+  padding:1rem;
+  font-family:'Orbitron',sans-serif;
+  background:linear-gradient(135deg,#8b0000,#2b0033);
+  color:white;
+  border:2px solid red;
+  border-radius:10px;
+  box-shadow:0 0 15px red;
+  position:relative;
+  z-index:6;
+}
+
+/* =====================================================
+   SCANNING
+===================================================== */
+.scan-box{
+  width:220px;
+  height:220px;
+  border:3px solid red;
+  margin:1.5rem auto;
+  position:relative;
+  overflow:hidden;
+}
+
+.scan-line{
+  position:absolute;
+  width:100%;
+  height:4px;
+  background:red;
+  animation:scan 2s linear infinite;
+}
+
+@keyframes scan{
+  0%{top:0}
+  100%{top:100%}
+}
+
+/* Camera preview inside scan box */
+#camPreview{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  background: #111;
+}
+
+/* mic level indicator */
+#micLevel{
+  margin-top:10px;
+  height:8px;
+  width:220px;
+  background:rgba(255,255,255,0.08);
+  border-radius:6px;
+  overflow:hidden;
+  margin-left:auto;
+  margin-right:auto;
+}
+#micLevel > .lvl{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,#ff2b2b,#ff8b00);
+  /* make transitions snappier for better responsiveness */
+  transition:width .04s linear;
+  box-shadow: 0 0 8px rgba(255, 80, 80, 0.12) inset;
+}
+
+/* =====================================================
+   RESULT LAYOUT - leaderboard on right, content left
+===================================================== */
+.result-grid{
+  display:flex;
+  gap:20px;
+  align-items:flex-start;
+  width:100%;
+  max-width:1100px;
+  margin: 0 auto;
+  padding: 8px;
+  justify-content:center;
+}
+
+/* left column: result content */
+.result-main{
+  flex: 1 1 0;
+  min-width: 300px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+  border-radius:12px;
+  padding:18px;
+  border:1px solid rgba(255,0,0,0.04);
+}
+
+/* right column: leaderboard */
+.result-side{
+  width: 340px;
+  max-width: 340px;
+  align-self:flex-start;
+}
+
+/* tweak leaderboard style for right column */
+#leaderboard{
+  background:linear-gradient(145deg,#0a0000,#000);
+  border:2px solid darkred;
+  border-radius:12px;
+  padding:12px;
+  box-shadow:0 0 20px rgba(255,0,0,.2);
+  width:100%;
+  pointer-events:auto;
+}
+#leaderboard h3{ color:#ff2b2b; margin-bottom:10px; }
+#leaderboard ul{ list-style:none; max-height:60vh; overflow:auto; padding-left:0; margin:0; }
+#leaderboard li{ padding:8px; border-bottom:1px solid #300; font-size:.95rem; display:flex; justify-content:space-between; gap:12px; }
+
+/* small responsive breakpoint */
+@media (max-width: 900px){
+  .result-grid{ flex-direction:column-reverse; gap:12px; padding:12px; }
+  .result-side{ width:100%; max-width:100%; }
+}
+
+/* =====================================================
+   RESULT PREVIEW STYLES
+===================================================== */
+#resultCanvas{
+  width:100%;
+  max-width:540px;
+  border-radius:10px;
+  display:block;
+  background:#000;
+  margin: 12px auto;
+}
+
+/* =====================================================
+   RESULT TEXT STYLES
+===================================================== */
+#finalText{ font-size:1.6rem; color:#ff2b2b; margin-bottom:6px; text-shadow:0 0 12px rgba(255,43,43,0.12); }
+#finalMessage{ color:#ddd; margin-bottom:8px; }
+
+/* =====================================================
+   RESULT BUTTONS
+===================================================== */
+.result-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; justify-content:center; }
+
+/* =====================================================
+   RESULT STYLES (kept)
+===================================================== */
+.safe{color:#00ffd5}
+.infected{color:#c266ff}
+.possessed{
+  color:#ff2b2b;
+  animation:glitch .3s infinite;
+}
+
+@keyframes glitch{
+  0%{transform:translateX(0)}
+  50%{transform:translateX(-3px)}
+  100%{transform:translateX(3px)}
+}
+
+/* =====================================================
+   FOOTER
+===================================================== */
+footer{
+  position:fixed;
+  bottom:6px;
+  font-size:.65rem;
+  color:#666;
+  width:100%;
+  text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= INTRO ================= -->
+<div id="introScreen">
+  <video id="introVideo" preload="auto">
+    <source src="/public/STN.mp4" type="video/mp4">
+  </video>
+
+  <div id="startOverlay">
+    <h2>Tap to Start Experience</h2>
+    <button id="startSoundBtn">START 🔊</button>
+    <!-- New transparent skip button (visible immediately at intro start) -->
+    <button id="skipIntroBtn">Enter TechSide Down World</button>
+  </div>
+
+  <div id="nameOverlay" aria-hidden="true">
+    <video id="bgVideo" autoplay muted loop playsinline>
+      <source src="/public/BG.mp4" type="video/mp4">
+    </video>
+    <div id="nameCard">
+      <h2>THE CURSE AWAITS</h2>
+      <p>Identify yourself before Vecna listens</p>
+      <input id="playerName" placeholder="Enter your name">
+      <button id="nameConfirmBtn">ENTER</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div id="mainApp">
+  <video autoplay muted loop id="bgVideo">
+    <source src="/public/background.mp4" type="video/mp4">
+  </video>
+
+  <div class="overlay"></div>
+
+  <div class="page active" id="intro">
+    <h1>AI Vecna Curse</h1>
+    <p>Are you already marked by the Upside Down?</p>
+    <button onclick="beginScanFlow()">Begin Scan</button>
+    <p style="font-size:.8rem;margin-top:8px;color:#aaa">(You will be asked to enable camera & mic)</p>
+  </div>
+
+  <div class="page" id="scan">
+    <h2>Scanning...</h2>
+    <div class="scan-box">
+      <!-- camera preview shown while scanning -->
+      <video id="camPreview" autoplay muted playsinline></video>
+      <div class="scan-line"></div>
+    </div>
+    <div id="micLevel"><div class="lvl"></div></div>
+    <p id="scanHint">Capturing face & voice — hold still and speak a short phrase</p>
+    <button onclick="cancelScan()">Cancel</button>
+  </div>
+
+  <div class="page" id="result">
+    <!-- New two-column layout: left = result content, right = leaderboard -->
+    <div class="result-grid">
+      <div class="result-main">
+        <div id="finalText">RESULT</div>
+        <div id="finalMessage"></div>
+
+        <!-- Preview canvas for the generated PNG -->
+        <canvas id="resultCanvas" width="540" height="540"></canvas>
+
+        <div class="result-actions">
+          <button onclick="saveResult()">Save to Leaderboard</button>
+          <button id="shareBtn" onclick="shareResult()">Share</button>
+          <button onclick="reset()">Scan Again</button>
+        </div>
+      </div>
+
+      <div class="result-side">
+        <div id="leaderboard">
+          <h3>Vecna Leaderboard</h3>
+          <ul id="boardList"></ul>
+          <div id="boardEmpty" style="display:none">No entries yet. Be the first to save a result.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>AI Vecna Curse Experience © 2025</footer>
+</div>
+
+<script>
+/* =====================================================
+   VIEWPORT FIX
+===================================================== */
+document.documentElement.style.setProperty('--vh',window.innerHeight*0.01+'px');
+
+/* =====================================================
+   ELEMENT REFERENCES
+===================================================== */
+const introScreen = document.getElementById("introScreen");
+const introVideo = document.getElementById("introVideo");
+const startOverlay = document.getElementById("startOverlay");
+const startBtn = document.getElementById("startSoundBtn");
+const skipBtn  = document.getElementById("skipIntroBtn");
+const nameOverlay = document.getElementById("nameOverlay");
+const nameConfirmBtn = document.getElementById("nameConfirmBtn");
+const playerNameInput = document.getElementById("playerName");
+const mainApp = document.getElementById("mainApp");
+
+const pages = {
+  intro: document.getElementById("intro"),
+  scan: document.getElementById("scan"),
+  result: document.getElementById("result")
+};
+
+const finalText = document.getElementById("finalText");
+const finalMessage = document.getElementById("finalMessage");
+const boardList = document.getElementById("boardList");
+const boardEmpty = document.getElementById("boardEmpty");
+const shareBtn = document.getElementById("shareBtn");
+
+const camPreview = document.getElementById("camPreview");
+const micLevel = document.querySelector("#micLevel .lvl");
+const scanHint = document.getElementById("scanHint");
+
+const resultCanvas = document.getElementById("resultCanvas");
+
+let activeStream = null;
+let micAnalyser = null;
+let micAnimationId = null;
+let scanStartTime = 0;
+const MIN_SCAN_MS = 10000; // keep scanning screen visible for at least 10s
+
+/* =====================================================
+   Client-side generator for fallback/random results
+===================================================== */
+function clientGenResult(){
+  const levels = ["SAFE","INFECTED","POSSESSED"];
+  const lvl = levels[Math.floor(Math.random()*levels.length)];
+  const intensity = {
+    "SAFE": randInt(5,30),
+    "INFECTED": randInt(40,70),
+    "POSSESSED": randInt(75,100)
+  }[lvl];
+  const msg = {
+    "SAFE": "You are untouched by the Upside Down.",
+    "INFECTED": "Vecna senses your presence.",
+    "POSSESSED": "Vecna has claimed you."
+  }[lvl];
+  return {
+    curse_level: lvl,
+    intensity: intensity,
+    message: msg,
+    ts: Date.now()
+  };
+}
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+function ensureValidResult(res){
+  try{
+    const lvl = (res.curse_level || res.curse || "").toString().toUpperCase();
+    const intensity = (typeof res.intensity === "number") ? res.intensity : parseFloat(res.intensity) || 0;
+    if(!lvl || lvl === "UNKNOWN" || intensity === 0){
+      return clientGenResult();
+    }
+    return {
+      curse_level: lvl,
+      intensity: Math.max(0, Math.min(100, Math.round(intensity))),
+      message: res.message || res.note || "",
+      ts: res.ts || Date.now()
+    };
+  }catch(e){
+    return clientGenResult();
+  }
+}
+
+/* =====================================================
+   INTRO FLOW + SKIP + NAME OVERLAY
+===================================================== */
+startBtn.onclick = async () => {
+  startOverlay.style.display = "none";
+  introVideo.muted = false;
+  try{
+    await introVideo.play();
+  }catch(e){
+    console.warn("Intro video play failed:", e);
+  }
+};
+
+introVideo.onended = () => {
+  showNameOverlayWithFade();
+};
+
+skipBtn.onclick = async (ev) => {
+  ev.preventDefault();
+  startOverlay.classList.add('fade-out');
+  try { introVideo.pause(); } catch(e){}
+  setTimeout(() => {
+    showNameOverlayWithFade();
+  }, 600);
+};
+
+function showNameOverlayWithFade(){
+  try { startOverlay.style.display = "none"; } catch(e){}
+  nameOverlay.style.display = "flex";
+  void nameOverlay.offsetWidth;
+  nameOverlay.classList.add('visible');
+  nameOverlay.setAttribute('aria-hidden','false');
+}
+
+nameConfirmBtn.onclick = () => {
+  const name = playerNameInput.value.trim();
+  if(!name) return alert("Enter your name");
+  localStorage.setItem("playerName", name);
+
+  introScreen.style.display = "none";
+  mainApp.style.display = "block";
+
+  loadBoard();
+};
+
+window.addEventListener("load", () => {
+  const saved = localStorage.getItem("playerName");
+  if(saved){
+    playerNameInput.value = saved;
+  }
+});
+
+/* =====================================================
+   PAGE SYSTEM
+===================================================== */
+function show(p){
+  Object.values(pages).forEach(pg => pg.classList.remove("active"));
+  pages[p].classList.add("active");
+}
+
+function reset(){
+  show("intro");
+}
+
+/* =====================================================
+   SECURE CONTEXT / CAPABILITY CHECK
+===================================================== */
+function ensureCanUseCameraMic() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    scanHint.innerText = "Camera/microphone API not supported by this browser.";
+    return false;
+  }
+  const isLocalhost = (location.hostname === "localhost" || location.hostname === "127.0.0.1");
+  if (location.protocol !== "https:" && !isLocalhost) {
+    scanHint.innerText = "Camera/mic require a secure origin (HTTPS) or localhost. Serve the app over https or open it at http://localhost:5000. Use ngrok for quick HTTPS.";
+    return false;
+  }
+  return true;
+}
+
+/* =====================================================
+   SCAN FLOW
+   - Longer warmup and longer recording (6s)
+   - Mic visualizer uses time-domain RMS mapping (improved sensitivity)
+===================================================== */
+
+async function beginScanFlow(){
+  const name = localStorage.getItem("playerName") || playerNameInput.value.trim();
+  if(!name){
+    alert("Please enter your name first.");
+    nameOverlay.style.display = "flex";
+    return;
+  }
+
+  show("scan");
+  scanStartTime = Date.now();
+  scanHint.innerText = "Initializing camera & microphone...";
+  const canUse = ensureCanUseCameraMic();
+
+  if(!canUse){
+    await ensureMinScanTime();
+    // ensure we have a valid random result if backend can't be used
+    window.latestResult = clientGenResult();
+    applyResultToUI(window.latestResult);
+    await loadBoard();
+    drawResultImageToCanvas(window.latestResult);
+    show("result");
+    return;
+  }
+
+  try{
+    await startMediaAndCapture();
+  }catch(err){
+    console.warn("Scan flow failed:", err);
+    scanHint.innerText = "Permission denied or no device. Using fallback result...";
+    await ensureMinScanTime();
+    window.latestResult = clientGenResult();
+    applyResultToUI(window.latestResult);
+    await loadBoard();
+    drawResultImageToCanvas(window.latestResult);
+    show("result");
+  }
+}
+
+function cancelScan(){
+  try{ stopMediaTracks(); }catch(e){}
+  show("intro");
+}
+
+async function startMediaAndCapture(){
+  console.log("✅ startMediaAndCapture CALLED");
+  let stream;
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 640, height: 480 }, audio: true });
+  }catch(err){
+    console.warn("getUserMedia failed:", err);
+    throw err;
+  }
+
+  activeStream = stream;
+  try{
+    camPreview.srcObject = stream;
+    await camPreview.play().catch(e => console.warn("camPreview.play() failed:", e));
+  }catch(e){
+    console.warn("Could not start camera preview:", e);
+  }
+
+  try{
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    await audioCtx.resume();
+    const src = audioCtx.createMediaStreamSource(stream);
+    micAnalyser = audioCtx.createAnalyser();
+    // increase fftSize for better time-domain resolution; smoothing modest so bar reacts quickly
+    micAnalyser.fftSize = 2048;
+    micAnalyser.smoothingTimeConstant = 0.2;
+    src.connect(micAnalyser);
+    visualizeMicLevel();
+  }catch(e){
+    console.warn("Mic analyser not available:", e);
+  }
+
+  // longer warm-up so camera/mic settle
+  scanHint.innerText = "Capturing face & voice — hold still and speak a short phrase";
+  await wait(1500);
+
+  const imageBlob = await captureImageFromVideo(camPreview, 640, 480);
+  // record 6 seconds of audio to better capture voice
+  const audioBlob = await recordShortAudio(stream, 6000);
+
+  stopMediaTracks();
+
+  await sendSamplesToBackend(imageBlob, audioBlob);
+}
+
+/* helper: small wait */
+function wait(ms){ return new Promise(res => setTimeout(res, ms)); }
+
+/* ensure scanning UI stays visible for minimum duration */
+async function ensureMinScanTime(){
+  const elapsed = Date.now() - scanStartTime;
+  const remaining = Math.max(0, MIN_SCAN_MS - elapsed);
+  if(remaining > 0){
+    await wait(remaining);
+  }
+}
+
+/* capture video frame to PNG blob */
+function captureImageFromVideo(videoEl, w = 640, h = 480){
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.save();
+  ctx.translate(w, 0);
+  ctx.scale(-1, 1);
+  try{
+    ctx.drawImage(videoEl, 0, 0, w, h);
+  }catch(e){
+    console.warn("drawImage failed (video frame missing?)", e);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0,0,w,h);
+  }
+  ctx.restore();
+  return new Promise(resolve => canvas.toBlob(blob => resolve(blob), "image/png", 0.95));
+}
+
+/* =====================================================
+   Replace recordShortAudio with a robust implementation
+   - resolves even if MediaRecorder hangs, with safety timers
+===================================================== */
+function recordShortAudio(stream, durationMs = 6000){
+  return new Promise((resolve) => {
+    if(!window.MediaRecorder){
+      console.warn("MediaRecorder not supported, returning empty audio blob.");
+      return resolve(new Blob([], { type: 'audio/webm' }));
+    }
+
+    let rec;
+    let parts = [];
+    let finished = false;
+    let safetyTimer = null;
+
+    try{
+      rec = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    }catch(e){
+      console.warn("MediaRecorder construction failed:", e);
+      return resolve(new Blob([], { type: 'audio/webm' }));
+    }
+
+    rec.ondataavailable = e => { if(e.data && e.data.size) parts.push(e.data); };
+
+    rec.onstop = () => {
+      if(finished) return;
+      finished = true;
+      clearTimeout(safetyTimer);
+      try{
+        const blob = new Blob(parts, { type: 'audio/webm' });
+        resolve(blob);
+      }catch(e){
+        console.warn("Failed to build audio blob:", e);
+        resolve(new Blob([], { type: 'audio/webm' }));
+      }
+    };
+
+    rec.onerror = (ev) => {
+      console.warn("MediaRecorder error:", ev);
+      // allow the onstop handler (or safety) to resolve
+    };
+
+    try{
+      rec.start();
+    }catch(e){
+      console.warn("MediaRecorder start failed:", e);
+      return resolve(new Blob([], { type: 'audio/webm' }));
+    }
+
+    // Stop after durationMs, but also ensure we forcibly resolve after a safety window.
+    const stopAttempt = () => {
+      try{
+        if(rec && rec.state !== 'inactive') rec.stop();
+      }catch(e){
+        // ignore
+      }
+    };
+
+    // Primary timer: ask recorder to stop at the requested duration
+    const primaryTimer = setTimeout(() => {
+      stopAttempt();
+      // Safety timer: if onstop hasn't fired within 2s, resolve with whatever we have.
+      safetyTimer = setTimeout(() => {
+        if(!finished){
+          finished = true;
+          try{
+            const blob = new Blob(parts, { type: 'audio/webm' });
+            resolve(blob);
+          }catch(e){
+            resolve(new Blob([], { type: 'audio/webm' }));
+          }
+        }
+      }, 2000);
+    }, durationMs);
+
+    // Additional failsafe: if recorder doesn't stop within durationMs + 7s (edge cases), resolve
+    const ultimateSafety = setTimeout(() => {
+      if(!finished){
+        finished = true;
+        try{
+          if(rec && rec.state !== 'inactive') { try{ rec.stop(); }catch{} }
+        }catch(e){}
+        try{
+          const blob = new Blob(parts, { type: 'audio/webm' });
+          resolve(blob);
+        }catch(e){
+          resolve(new Blob([], { type: 'audio/webm' }));
+        }
+      }
+      clearTimeout(primaryTimer);
+      clearTimeout(safetyTimer);
+    }, durationMs + 7000);
+  });
+}
+
+/* visualize mic level from analyser
+   - Uses time-domain data (getByteTimeDomainData) and RMS to better reflect loudness
+*/
+function visualizeMicLevel(){
+  if(!micAnalyser) return;
+  const bufferLen = micAnalyser.fftSize;
+  const data = new Uint8Array(bufferLen);
+  function loop(){
+    try{
+      micAnalyser.getByteTimeDomainData(data);
+      // compute RMS (root mean square) of normalized samples
+      let sumSq = 0;
+      for(let i=0;i<data.length;i++){
+        const v = (data[i] - 128) / 128; // -1..1
+        sumSq += v * v;
+      }
+      const rms = Math.sqrt(sumSq / data.length); // 0..1
+      // map rms to percentage; adjust divisor to calibrate sensitivity (0.18 chosen empirically)
+      const pct = Math.min(100, Math.round((rms / 0.18) * 100));
+      micLevel.style.width = pct + "%";
+    }catch(e){
+      console.warn("Visualizer loop error:", e);
+    }
+    micAnimationId = requestAnimationFrame(loop);
+  }
+  if(micAnimationId) cancelAnimationFrame(micAnimationId);
+  loop();
+}
+
+/* =====================================================
+   Replace stopMediaTracks with a more defensive version
+   - closes AudioContext when possible and disconnects nodes
+===================================================== */
+function stopMediaTracks(){
+  try{
+    if(micAnimationId) cancelAnimationFrame(micAnimationId);
+    micAnimationId = null;
+  }catch(e){}
+  try{
+    if(micAnalyser){
+      try{
+        const ctx = micAnalyser.context;
+        micAnalyser.disconnect && micAnalyser.disconnect();
+        if(ctx && typeof ctx.close === 'function') ctx.close().catch(()=>{});
+      }catch(e){}
+    }
+  }catch(e){}
+  micAnalyser = null;
+
+  try{
+    if(activeStream){
+      activeStream.getTracks().forEach(t => {
+        try{ t.stop(); }catch(e){}
+      });
+      activeStream = null;
+    }
+  }catch(e){}
+
+  try{ if(camPreview) camPreview.srcObject = null; }catch(e){}
+  try{ micLevel.style.width = "0%"; }catch(e){}
+}
+
+/* =====================================================
+   sendSamplesToBackend with timeout and robust fallbacks
+   - replaces previous version to avoid indefinite hangs
+===================================================== */
+async function sendSamplesToBackend(imageBlob, audioBlob){
+  show("scan");
+  document.getElementById("scanHint").innerText = "Sending samples to AI...";
+  console.log("Sending sample sizes:", imageBlob && imageBlob.size, audioBlob && audioBlob.size);
+  const form = new FormData();
+  form.append("name", localStorage.getItem("playerName") || playerNameInput.value || "anonymous");
+  if(imageBlob) form.append("image", imageBlob, "snapshot.png");
+  if(audioBlob) form.append("audio", audioBlob, "voice.webm");
+  form.append("ts", Date.now());
+
+  // helper: fetch with timeout
+  const fetchWithTimeout = (url, opts, timeoutMs = 12000) => {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error("fetch-timeout"));
+      }, timeoutMs);
+      fetch(url, opts).then(res => {
+        clearTimeout(timer);
+        resolve(res);
+      }).catch(err => {
+        clearTimeout(timer);
+        reject(err);
+      });
+    });
+  };
+
+  try{
+    const res = await fetchWithTimeout("/curse", { method: "POST", body: form }, 12000);
+
+    if(!res.ok){
+      console.warn("POST /curse returned", res.status);
+      throw new Error("backend error");
+    }
+
+    const data = await res.json();
+    // normalize server response
+    const normalized = normalizeResultFromServer(data);
+    // ensure we have valid (non-UNKNOWN) result
+    window.latestResult = ensureValidResult(normalized);
+
+    // ensure scan screen visible for minimum time before switching
+    await ensureMinScanTime();
+    applyResultToUI(window.latestResult);
+    await loadBoard();
+    // draw preview
+    try{ drawResultImageToCanvas(window.latestResult); }catch(e){ console.warn("preview draw failed:", e); }
+    show("result");
+  }catch(err){
+    console.error("Send samples failed or timed out:", err);
+    // ensure minimum visible time
+    await ensureMinScanTime();
+    // fallback to client-generated result
+    window.latestResult = clientGenResult();
+    applyResultToUI(window.latestResult);
+    await loadBoard();
+    try{ drawResultImageToCanvas(window.latestResult); }catch(e){ console.warn("preview draw failed:", e); }
+    show("result");
+  }
+}
+
+/* normalize server JSON to expected shape (no replacement here) */
+function normalizeResultFromServer(d){
+  const out = {};
+  out.curse_level = d.curse_level || d.curse || d.result || "UNKNOWN";
+  let intensity = 0;
+  if(typeof d.intensity === "number") intensity = d.intensity;
+  else if(typeof d.intensity === "string") intensity = parseFloat(d.intensity) || 0;
+  else if(typeof d.confidence === "number") intensity = d.confidence;
+  intensity = Math.max(0, Math.min(100, Math.round(intensity)));
+  out.intensity = intensity;
+  out.message = d.message || d.note || "";
+  out.ts = d.ts || Date.now();
+  return out;
+}
+
+/* apply a result object to UI */
+function applyResultToUI(d){
+  finalText.className = "";
+  finalText.innerText = "YOU ARE " + (d.curse_level || "UNKNOWN");
+  finalMessage.innerText = (d.message ? d.message + " — " : "") + `Severity: ${d.intensity}%`;
+
+  const lvl = (d.curse_level || "").toString().toUpperCase();
+  if(lvl === "SAFE") finalText.classList.add("safe");
+  else if(lvl === "INFECTED") finalText.classList.add("infected");
+  else finalText.classList.add("possessed");
+}
+
+/* =====================================================
+   Legacy/simple GET fetchResult (kept as fallback)
+===================================================== */
+async function fetchResult(){
+  try{
+    const r = await fetch("/curse");
+    const d = await r.json();
+    const normalized = normalizeResultFromServer(d);
+    window.latestResult = ensureValidResult(normalized);
+  }catch(err){
+    window.latestResult = clientGenResult();
+  }
+  applyResultToUI(window.latestResult);
+  await loadBoard();
+  drawResultImageToCanvas(window.latestResult);
+  show("result");
+}
+
+/* =====================================================
+   RESULT + LEADERBOARD
+===================================================== */
+
+const LOCAL_BOARD_KEY = "vecna_local_board_v1";
+
+function readLocalBoard(){
+  try{
+    const raw = localStorage.getItem(LOCAL_BOARD_KEY);
+    if(!raw) return [];
+    return JSON.parse(raw) || [];
+  }catch(e){
+    console.warn("Local board read error", e);
+    return [];
+  }
+}
+
+function writeLocalBoard(arr){
+  try{
+    localStorage.setItem(LOCAL_BOARD_KEY, JSON.stringify(arr.slice(0,200)));
+  }catch(e){
+    console.warn("Local board write error", e);
+  }
+}
+
+function mergeBoards(serverBoard, localBoard){
+  const combined = (serverBoard || []).concat(localBoard || []);
+  const normalized = combined.map(e => ({
+    name: (e.name || e.player || "unknown").toString().trim(),
+    curse: (e.curse || e.curse_level || e.curseLevel || "UNKNOWN").toString().trim(),
+    intensity: (typeof e.intensity === "number") ? e.intensity : parseFloat(e.intensity) || 0,
+    ts: e.ts || e.timestamp || Date.now()
+  }))
+  .filter(e => {
+    if(!e.name) return false;
+    const nameLower = e.name.toLowerCase();
+    const curseUpper = (e.curse || "").toString().toUpperCase();
+    if(nameLower === "unknown" || nameLower === "") return false;
+    if(curseUpper === "UNKNOWN" || curseUpper === "") return false;
+    return true;
+  });
+
+  normalized.sort((a,b) => {
+    if(b.intensity !== a.intensity) return b.intensity - a.intensity;
+    return b.ts - a.ts;
+  });
+
+  return normalized.slice(0,100);
+}
+
+async function saveResult(){
+  if(!window.latestResult){
+    alert("Result not ready");
+    return;
+  }
+
+  const entry = {
+    name: localStorage.getItem("playerName") || playerNameInput.value || "anonymous",
+    curse: window.latestResult.curse_level || "UNKNOWN",
+    intensity: window.latestResult.intensity || 0,
+    ts: Date.now()
+  };
+
+  try{
+    const res = await fetch("/leaderboard", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entry)
+    });
+
+    if(!res.ok) throw new Error("Server rejected");
+
+    await loadBoard();
+    alert("Saved to server leaderboard.");
+  }catch(err){
+    console.warn("Server save failed, storing locally", err);
+    const local = readLocalBoard();
+    const idx = local.findIndex(e => (e.name || "").toLowerCase() === (entry.name||"").toLowerCase());
+    if(idx >= 0){
+      if(entry.intensity > (local[idx].intensity || 0)){
+        local[idx] = entry;
+      }
+    }else{
+      local.push(entry);
+    }
+    local.sort((a,b) => b.intensity - a.intensity || b.ts - a.ts);
+    writeLocalBoard(local);
+    loadBoard();
+    alert("Saved locally (server unavailable).");
+  }
+}
+
+async function loadBoard(){
+  let serverBoard = [];
+  let localBoard = readLocalBoard();
+
+  try{
+    const res = await fetch("/leaderboard");
+    if(res.ok){
+      serverBoard = await res.json();
+      if(!Array.isArray(serverBoard) && serverBoard.data) serverBoard = serverBoard.data;
+      if(!Array.isArray(serverBoard)) serverBoard = [];
+    }else{
+      serverBoard = [];
+    }
+  }catch(err){
+    console.warn("Failed to fetch server leaderboard", err);
+    serverBoard = [];
+  }
+
+  const merged = mergeBoards(serverBoard, localBoard);
+
+  boardList.innerHTML = "";
+  if(merged.length === 0){
+    boardEmpty.style.display = "block";
+  }else{
+    boardEmpty.style.display = "none";
+    merged.forEach((e,i) => {
+      const li = document.createElement("li");
+      const left = document.createElement("div");
+      left.innerText = `${i+1}. ${e.name} — ${e.curse}`;
+      const right = document.createElement("div");
+      right.className = "leader-int";
+      right.innerText = `${e.intensity}%`;
+      li.appendChild(left);
+      li.appendChild(right);
+      boardList.appendChild(li);
+    });
+  }
+}
+
+/* =====================================================
+   DRAW / PREVIEW / SHARE (designer PNG)
+   drawResultImage & drawResultImageToCanvas are kept same as before
+   (they were in your file before; ensure preview is shown)
+===================================================== */
+
+function hexToRgba(hex, a=1){
+  if(!hex) return `rgba(0,0,0,${a})`;
+  const h = hex.replace('#','');
+  const bigint = parseInt(h,16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+async function drawResultImage(resultObj){
+  // returns blob
+  const size = 1080;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+
+  const level = (resultObj && (resultObj.curse_level || resultObj.curse) || "UNKNOWN").toString().toUpperCase();
+  const intensity = resultObj && typeof resultObj.intensity === "number" ? resultObj.intensity : 0;
+  const name = (localStorage.getItem("playerName") || playerNameInput.value || "ANONYMOUS").toUpperCase();
+  const message = resultObj && resultObj.message ? resultObj.message : "";
+
+  // palettes per level
+  const palettes = {
+    SAFE: { bg1: '#002b20', bg2:'#005a43', accent:'#00ffd5', text:'#e6fff8' },
+    INFECTED: { bg1: '#2b0033', bg2:'#5a2aff', accent:'#ffcf33', text:'#fff6e6' },
+    POSSESSED: { bg1:'#2a0000', bg2:'#7b001a', accent:'#ff6b6b', text:'#ffecec' },
+    DEFAULT: { bg1:'#120000', bg2:'#000000', accent:'#ffb3b3', text:'#fff' }
+  };
+  const pal = palettes[level] || palettes.DEFAULT;
+
+  // background radial gradient
+  const rg = ctx.createRadialGradient(size*0.35, size*0.25, size*0.05, size*0.5, size*0.6, size);
+  rg.addColorStop(0, hexToRgba(pal.bg2, 0.95));
+  rg.addColorStop(0.6, hexToRgba(pal.bg1, 0.95));
+  rg.addColorStop(1, '#000');
+  ctx.fillStyle = rg;
+  ctx.fillRect(0,0,size,size);
+
+  // subtle vignette
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.rect(0,0,size,size);
+  ctx.fill();
+
+  // decorative accents (diagonal streak)
+  ctx.globalCompositeOperation = 'lighter';
+  const streak = ctx.createLinearGradient(0,0,size,size);
+  streak.addColorStop(0, hexToRgba(pal.accent, 0.06));
+  streak.addColorStop(0.5, hexToRgba('#000000', 0));
+  streak.addColorStop(1, hexToRgba(pal.accent, 0.03));
+  ctx.fillStyle = streak;
+  ctx.fillRect(0, 0, size, size);
+  ctx.globalCompositeOperation = 'source-over';
+
+  // glow circle
+  const cx = size/2, cy = size*0.42, cr = size*0.34;
+  const g = ctx.createRadialGradient(cx, cy, cr*0.1, cx, cy, cr);
+  g.addColorStop(0, hexToRgba(pal.accent, 0.26));
+  g.addColorStop(1, hexToRgba('#000000', 0));
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI*2); ctx.fill();
+
+  // header - name
+  ctx.textAlign = 'center';
+  ctx.fillStyle = pal.text;
+  ctx.font = "700 54px 'Orbitron', sans-serif";
+  ctx.fillText(name, cx, 120);
+
+  // YOU ARE
+  ctx.font = "700 68px 'Orbitron', sans-serif";
+  ctx.lineWidth = 12;
+  ctx.strokeStyle = hexToRgba('#000', 0.6);
+  ctx.strokeText("YOU ARE", cx, cy - 120);
+  ctx.fillStyle = pal.text;
+  ctx.fillText("YOU ARE", cx, cy - 120);
+
+  // big level label
+  ctx.font = "900 160px 'Orbitron', sans-serif";
+  ctx.lineWidth = 20;
+  ctx.strokeStyle = hexToRgba('#000', 0.7);
+  ctx.strokeText(level, cx, cy + 30);
+  const lg = ctx.createLinearGradient(0, cy-90, 0, cy+110);
+  lg.addColorStop(0, pal.accent);
+  lg.addColorStop(1, '#ffffff');
+  ctx.fillStyle = lg;
+  ctx.fillText(level, cx, cy + 30);
+
+  // message text wrap
+  ctx.font = "400 30px 'Orbitron',sans-serif";
+  ctx.fillStyle = hexToRgba(pal.text, 0.95);
+  wrapText(ctx, message, cx, cy + 120, size - 160, 40);
+
+  // intensity pill
+  const pill = `INTENSITY: ${intensity}%`;
+  ctx.font = "700 36px 'Orbitron',sans-serif";
+  const tw = ctx.measureText(pill).width + 44;
+  const bx = cx - tw/2, by = size - 170, bh = 56;
+  ctx.fillStyle = hexToRgba('#000', 0.6);
+  roundRect(ctx, bx, by - 30, tw, bh, 28, true, false);
+  ctx.fillStyle = pal.accent;
+  ctx.fillText(pill, cx, by + 6);
+
+  // footer
+  ctx.font = "300 20px 'Orbitron',sans-serif";
+  ctx.fillStyle = hexToRgba(pal.text, 0.6);
+  ctx.fillText(`Shared from AI Vecna · ${new Date().toLocaleString()}`, cx, size - 40);
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), "image/png", 1);
+  });
+
+  // helpers
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+    if(!text) return;
+    const words = String(text).split(' ');
+    let line = '';
+    for(let n=0;n<words.length;n++){
+      const testLine = line + words[n] + ' ';
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+      if(testWidth > maxWidth && n > 0){
+        ctx.fillText(line, x, y);
+        line = words[n] + ' ';
+        y += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    ctx.fillText(line, x, y);
+  }
+  function roundRect(ctx,x,y,width,height,radius,fill,stroke){
+    if(typeof stroke==='undefined') stroke=true;
+    if(typeof radius==='undefined') radius=5;
+    if(typeof radius==='number') radius={tl:radius,tr:radius,br:radius,bl:radius};
+    ctx.beginPath();
+    ctx.moveTo(x+radius.tl,y);
+    ctx.lineTo(x+width-radius.tr,y);
+    ctx.quadraticCurveTo(x+width,y,x+width,y+radius.tr);
+    ctx.lineTo(x+width,y+height-radius.br);
+    ctx.quadraticCurveTo(x+width,y+height,x+width-radius.br,y+height);
+    ctx.lineTo(x+radius.bl,y+height);
+    ctx.quadraticCurveTo(x,y+height,x,y+height-radius.bl);
+    ctx.lineTo(x,y+radius.tl);
+    ctx.quadraticCurveTo(x,y,x+radius.tl,y);
+    ctx.closePath();
+    if(fill) ctx.fill();
+    if(stroke) ctx.stroke();
+  }
+}
+
+/* draw preview to the canvas element */
+async function drawResultImageToCanvas(resultObj){
+  try{
+    const blob = await drawResultImage(resultObj);
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      try{
+        const ctx = resultCanvas.getContext('2d');
+        // draw cover fit
+        ctx.clearRect(0,0,resultCanvas.width,resultCanvas.height);
+        ctx.drawImage(img, 0, 0, resultCanvas.width, resultCanvas.height);
+      }catch(e){ console.warn("preview draw failed", e); }
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }catch(e){
+    console.warn("drawResultImageToCanvas failed", e);
+  }
+}
+
+/* share result via WhatsApp only (generate png then open whatsapp with instructive text) */
+async function shareResult(){
+  if(!window.latestResult){
+    alert("Result not ready yet");
+    return;
+  }
+
+  let blob;
+  try{
+    blob = await drawResultImage(window.latestResult);
+    if(!blob) throw new Error("No blob generated");
+  }catch(err){
+    console.error("Image generation failed", err);
+    alert("Could not generate image for sharing.");
+    return;
+  }
+
+  const filename = `vecna_result_${Date.now()}.png`;
+  downloadBlob(blob, filename);
+
+  const player = localStorage.getItem("playerName") || playerNameInput.value || "Someone";
+  const curseLabel = window.latestResult.curse_level || window.latestResult.curse || "UNKNOWN";
+  const shareText = `${player} is ${curseLabel} 😱\nI've downloaded the image for you — please attach it in WhatsApp.`;
+
+  try{
+    const appUrl = `whatsapp://send?text=${encodeURIComponent(shareText)}`;
+    const webUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+
+    window.open(appUrl, '_blank');
+    setTimeout(()=> window.open(webUrl, '_blank'), 700);
+  }catch(e){
+    console.warn("WhatsApp fallback error", e);
+    alert("Image downloaded. Please open WhatsApp and attach the image to share.");
+  }
+}
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=> {
+    URL.revokeObjectURL(url);
+    a.remove();
+  }, 1000);
+}
+
+/* =====================================================
+   Utility to cleanly normalize and filter server/local items
+===================================================== */
+
+function cleanLocalBoardUnknowns(){
+  try{
+    const raw = localStorage.getItem(LOCAL_BOARD_KEY);
+    if(!raw) return alert("No local leaderboard found.");
+    const arr = JSON.parse(raw) || [];
+    const filtered = arr.filter(e=>{
+      if(!e) return false;
+      const name = (e.name || "").toString().trim().toLowerCase();
+      const curse = (e.curse || e.curse_level || "").toString().trim().toUpperCase();
+      if(!name || name === "unknown") return false;
+      if(!curse || curse === "UNKNOWN") return false;
+      return true;
+    });
+    localStorage.setItem(LOCAL_BOARD_KEY, JSON.stringify(filtered));
+    loadBoard();
+    alert("Local leaderboard cleaned. Removed " + (arr.length - filtered.length) + " bad entries.");
+  }catch(err){
+    console.error(err);
+    alert("Error cleaning local board. See console.");
+  }
+}
+
+</script>
+
+</body>
+</html>
