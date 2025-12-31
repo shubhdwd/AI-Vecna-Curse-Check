@@ -18,7 +18,7 @@ this project simulates an **AI-powered curse detection** using your **camera, mi
 - 🏆 Local leaderboard (browser storage)
 - 📤 Shareable result image (WhatsApp-friendly)
 - 🔒 Secure HTTPS compatible (Netlify deployment)
-- Database: Fireball Firestore
+- Database: Firebase Firestore
 ---
 
 ## 🗂️ Project Structure
